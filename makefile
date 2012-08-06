@@ -33,20 +33,22 @@ clobber: clean
 	rm -f sudokuCGI$(EXE)
 
 clean:
-	rcsclean sudoku.c
-	rcsclean sudokuCGI.c
-	rcsclean cursesGui.c
-	rcsclean cursesGui.h
-	rcsclean cgi.c
-	rcsclean cgi.h
-	rcsclean puzzle.c
-	rcsclean puzzle.h
-	rcsclean twiddleBits.c
-	rcsclean twiddleBits.h
+#	rcsclean sudoku.c
+#	rcsclean sudokuCGI.c
+#	rcsclean cursesGui.c
+#	rcsclean cursesGui.h
+#	rcsclean cgi.c
+#	rcsclean cgi.h
+#	rcsclean puzzle.c
+#	rcsclean puzzle.h
+#	rcsclean twiddleBits.c
+#	rcsclean twiddleBits.h
 	rm -f sudoku.o
 	rm -f sudokuCGI.o
 	rm -f cursesGui.o
 	rm -f cgi.o
 	rm -f puzzle.o
 	rm -f twiddleBits.o
-	rcsclean makefile
+	rm -f sudoku
+	rm -f sudokuCGI
+#	rcsclean makefile

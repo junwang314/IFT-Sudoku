@@ -1,3 +1,6 @@
 *.o
 sudoku
 sudokuCGI
+*.swp
+*.out
+/test

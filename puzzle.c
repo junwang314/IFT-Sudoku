@@ -1,4 +1,4 @@
-#ident "$Id: puzzle.c,v 1.9 2011/05/03 09:35:09 pwh Exp $"
+//#ident "$Id: puzzle.c,v 1.9 2011/05/03 09:35:09 pwh Exp $"
 /*
  * Sudoku Puzzle Solver, puzzle solution logic.
  */
@@ -510,7 +510,7 @@ static int crossHatch ( int *masks )
    int	i;
 
 #if	defined(DEBUG)
-   fprintf ( logFile, "crossHatch ( %04X ) {\n", masks );
+   fprintf ( logFile, "crossHatch ( %04X ) {\n", (unsigned int)masks );
    fflush ( logFile );
 #endif
 

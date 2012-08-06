@@ -1,4 +1,4 @@
-#ident "$Id: sudokuCGI.c,v 1.7 2011/05/02 23:07:35 pwh Exp $"
+//#ident "$Id: sudokuCGI.c,v 1.7 2011/05/02 23:07:35 pwh Exp $"
 /*
  * Sudoku Puzzle Solver.
  */

@@ -1,4 +1,4 @@
-#ident "$Id: cgi.h,v 1.4 2011/04/16 07:02:51 pwh Exp $"
+//#ident "$Id: cgi.h,v 1.4 2011/04/16 07:02:51 pwh Exp $"
 /*
  * Sudoku Puzzle Solver, CGI interface logic.
  */

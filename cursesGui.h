@@ -1,4 +1,4 @@
-#ident "$Id: cursesGui.h,v 1.3 2011/04/16 18:45:47 pwh Exp $"
+//#ident "$Id: cursesGui.h,v 1.3 2011/04/16 18:45:47 pwh Exp $"
 /*
  * Sudoku Puzzle Solver, curses GUI logic.
  */

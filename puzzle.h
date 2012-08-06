@@ -1,7 +1,13 @@
-#ident "$Id: puzzle.h,v 1.4 2011/05/02 22:59:25 pwh Exp $"
+//#ident "$Id: puzzle.h,v 1.4 2011/05/02 22:59:25 pwh Exp $"
 /*
  * Sudoku Puzzle Solver, puzzle solution logic.
  */
+#define DEBUG
+
+#if	defined(DEBUG)
+#include	<stdio.h>
+extern FILE *logFile;
+#endif
 
 /* Technique flags. */
 #define		NAKED_TUPLE_LEVEL	0xF

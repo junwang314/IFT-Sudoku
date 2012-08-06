@@ -1,4 +1,4 @@
-#ident "$Id: twiddleBits.c,v 1.1 2011/04/16 07:04:50 pwh Exp $"
+//#ident "$Id: twiddleBits.c,v 1.1 2011/04/16 07:04:50 pwh Exp $"
 /*
  * Bit twiddling routines.
  */

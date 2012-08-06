@@ -1,4 +1,4 @@
-#ident "$Id: cursesGui.c,v 1.5 2011/05/03 09:34:06 pwh Exp $"
+//#ident "$Id: cursesGui.c,v 1.5 2011/05/03 09:34:06 pwh Exp $"
 /*
  * Sudoku Puzzle Solver, curses GUI logic.
  */
@@ -13,6 +13,7 @@ extern FILE *logFile;
 #include	<curses.h>	/* Use the ncurses library. */
 #include	"cursesGui.h"
 #include	"twiddleBits.h"
+#include	<string.h>
 
 #define		BIT_MASK	0x1FF
 
