@@ -2,6 +2,7 @@
 /*
  * Sudoku Puzzle Solver, curses GUI logic.
  */
+#define DEBUG
 
 #if	defined(DEBUG)
 #include	<stdio.h>
@@ -14,6 +15,7 @@ extern FILE *logFile;
 #include	"cursesGui.h"
 #include	"twiddleBits.h"
 #include	<string.h>
+#include	"ift.h"
 
 #define		BIT_MASK	0x1FF
 
@@ -127,7 +129,8 @@ void displayCaptions ( DISPLAY *display, const char *line1, const char *line2 )
 }
 
 
-int displayEntry ( DISPLAY *display, int i, int j, int entry )
+//int displayEntry ( DISPLAY *display, int i, int j, int entry )
+int displayEntry ( DISPLAY *display, int i, int j, short *pentry )
 
 {
    int	status = 1;
@@ -136,11 +139,12 @@ int displayEntry ( DISPLAY *display, int i, int j, int entry )
 
 #if	defined(DEBUG)
    fprintf ( logFile, "displayEntry ( %p, %d, %d, %d ) {\n", display, i, j,
-									entry );
+									//entry );
+									star(pentry) );
    fflush ( logFile );
 #endif
 
-   display->board [i][j] = entry;
+   display->board [i][j] = star(pentry);
 
    if ( isBig ( display ) ) {
 
@@ -200,7 +204,17 @@ int displayEntry ( DISPLAY *display, int i, int j, int entry )
    }
 
    move ( display->y0 + y, display->x0 + x );
-   addch ( ( entry + '0' ) | A_UNDERLINE );
+   //addch ( ( entry + '0' ) | A_UNDERLINE );
+   if ( TEST(pentry) ) {
+	addch ( ( star(pentry) + '0' ) | A_UNDERLINE | A_STANDOUT );
+   }
+   else {
+	addch ( ( star(pentry) + '0' ) | A_UNDERLINE );
+   }
+#if	defined(DEBUG)
+   fprintf ( logFile, "DDD: %p, %lx, %d\n", pentry, (unsigned long)pentry, star(pentry));
+   fflush ( logFile );
+#endif
    move ( display->y0 + y, display->x0 + x );
 
    if ( display->delay ) refresh ();
@@ -269,7 +283,8 @@ static int enterClue ( DISPLAY *display, int i, int j, int entry )
 		display->rowMasks [i] ^= bit;
 		display->columnMasks [j] ^= bit;
 		display->blockMasks [i/3][j/3] ^= bit;
-		displayEntry ( display, i, j, entry );
+		//displayEntry ( display, i, j, entry );
+		displayEntry ( display, i, j, &entry );
 	}
    }
 

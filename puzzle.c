@@ -12,6 +12,7 @@ extern FILE *logFile;
 #include	<sys/stat.h>
 #include	"puzzle.h"
 #include	"twiddleBits.h"
+#include	"ift.h"
 
 
 HISTORY *openHistory ( void )
@@ -189,17 +190,22 @@ static void clearPuzzle ( PUZZLE *puzzle )
 
 	puzzle->rowMasks [i] = BIT_MASK;
 	puzzle->columnMasks [i] = BIT_MASK;
+	puzzle->prowMasks [i] = &(puzzle->rowMasks [i]);
+	puzzle->pcolumnMasks [i] = &(puzzle->columnMasks [i]);
 
 	for ( j = 0; j < 9; ++j ) {
 
 		puzzle->grid [i][j] = 0;
 		puzzle->masks [i][j] = BIT_MASK;
+		puzzle->pgrid [i][j] = &(puzzle->grid [i][j]);
+		puzzle->pmasks [i][j] = &(puzzle->masks [i][j]);
 	}
    }
 
    for ( i = 0; i < 3; ++i )
 	for ( j = 0; j < 3; ++j )
 		puzzle->blockMasks [i][j] = BIT_MASK;
+		puzzle->pblockMasks [i][j] = &(puzzle->blockMasks [i][j]);
 }
 
 
@@ -226,14 +232,19 @@ PUZZLE *openPuzzle ( void )
 }
 
 
-static int makeEntry ( PUZZLE *puzzle, int i, int j, int entry )
+//static int makeEntry ( PUZZLE *puzzle, int i, int j, int entry )
+static int makeEntry ( PUZZLE *puzzle, int i, int j, short *pentry )
 
 {
    int	status = 0;
-   int	bit = digit2bit ( entry );
+   //int	bit = digit2bit ( entry );
+   short	bit = digit2bit ( star(pentry) );
+   short	*pbit = &bit;
+   IFT(pbit, pentry);
 
 #if	defined(DEBUG)
-   fprintf ( logFile, "makeEntry ( %p, %d, %d, %d ) {\n", puzzle, i, j, entry );
+   //fprintf ( logFile, "makeEntry ( %p, %d, %d, %d ) {\n", puzzle, i, j, entry );
+   fprintf ( logFile, "makeEntry ( %p, %d, %d, %p ) {\n", puzzle, i, j, pentry );
    fflush ( logFile );
 #endif
 
@@ -244,8 +255,14 @@ static int makeEntry ( PUZZLE *puzzle, int i, int j, int entry )
 	puzzle->rowMasks [i] ^= bit;
 	puzzle->columnMasks [j] ^= bit;
 	puzzle->blockMasks [i/3][j/3] ^= bit;
-	puzzle->grid [i][j] = entry;
+	//puzzle->grid [i][j] = entry;
+	puzzle->grid [i][j] = star(pentry);
 	puzzle->masks [i][j] = 0;
+
+	IFT(puzzle->prowMasks [i], pbit);
+	IFT(puzzle->pcolumnMasks [j], pbit);
+	IFT(puzzle->pblockMasks [i/3][j/3], pbit);
+	IFT(puzzle->pgrid [i][j], pentry);
 
 	if ( puzzle->history ) pushHistory ( puzzle->history, i, j );
    }
@@ -259,7 +276,8 @@ static int makeEntry ( PUZZLE *puzzle, int i, int j, int entry )
 }
 
 
-static int enterClues ( PUZZLE *puzzle, char *clues )
+//static int enterClues ( PUZZLE *puzzle, char *clues )
+static int enterClues ( PUZZLE *puzzle, short **pclues )
 
 {
    int	status = 0;
@@ -267,15 +285,26 @@ static int enterClues ( PUZZLE *puzzle, char *clues )
    int	column = 0;
 
 #if	defined(DEBUG)
-   fprintf (  logFile, "enterClues ( %p, \"%s\" ) {\n", puzzle, clues );
+   //fprintf (  logFile, "enterClues ( %p, \"%s\" ) {\n", puzzle, clues );
+   fprintf (  logFile, "enterClues ( %p, %p ) {\n", puzzle, pclues );
    fflush ( logFile );
 #endif
 
-   while ( *clues ) {
+   //while ( *clues ) {
+   while ( star(*pclues) ) {
 
-	if ( isdigit ( *clues ) ) {
+	//if ( isdigit ( *clues ) ) {
+	if ( isdigit ( star(*pclues) ) ) {
 
-		int	clue = *clues - '0';
+		//int	clue = *clues - '0';
+		short	clue = star(*pclues) - '0';
+		short	*pclue = &clue;
+		IFT(pclue, *pclues);
+		//if (TEST(*pclues)) pclue = TAINT(pclue);
+#if	defined(DEBUG)
+   fprintf (  logFile, "EEE: %p, %p\n", pclue, *pclues );
+   fflush ( logFile );
+#endif
 
 		if ( column > 8 ) {
 
@@ -286,14 +315,15 @@ static int enterClues ( PUZZLE *puzzle, char *clues )
 		if ( clue > 0 ) {
 
 			if ( ! ( status
-				= makeEntry ( puzzle, row, column, clue ) ) )
+				//= makeEntry ( puzzle, row, column, clue ) ) )
+				= makeEntry ( puzzle, row, column, pclue ) ) )
 									break;
 		}
 
 		++column;
 	}
 
-	++clues;
+	++pclues;
    }
 
    if ( status ) {
@@ -302,11 +332,16 @@ static int enterClues ( PUZZLE *puzzle, char *clues )
 
 		for ( column = 0; column < 9; ++column ) {
 
-			if ( puzzle->grid [row][column] == 0 )
+			if ( puzzle->grid [row][column] == 0 ) {
 				puzzle->masks [row][column]
 				= ( puzzle->rowMasks [row]
 				& puzzle->columnMasks [column]
 				& puzzle->blockMasks [row/3][column/3] );
+				
+				IFT(puzzle->pmasks [row][column], puzzle->prowMasks [row]);			
+				IFT(puzzle->pmasks [row][column], puzzle->pcolumnMasks [column]);			
+				IFT(puzzle->pmasks [row][column], puzzle->pblockMasks [row/3][column/3]);			
+			}
 		}
 	}
    }
@@ -320,20 +355,22 @@ static int enterClues ( PUZZLE *puzzle, char *clues )
 }
 
 
-PUZZLE *openPuzzleSolver ( char *clues )
+//PUZZLE *openPuzzleSolver ( char *clues )
+PUZZLE *openPuzzleSolver ( short **pclues )
 
 {
    PUZZLE	*puzzle = NULL;
 
 #if	defined(DEBUG)
-   fprintf (  logFile, "openPuzzleSolver ( %s ) {\n", clues );
+   fprintf (  logFile, "openPuzzleSolver ( %p ) {\n", pclues );
    fflush ( logFile );
 #endif
 
    /* Allocate the object and initialize it. */
    if ( puzzle = openPuzzle () ) {
 
-	if ( ! enterClues ( puzzle, clues ) ) {
+	//if ( ! enterClues ( puzzle, clues ) ) {
+	if ( ! enterClues ( puzzle, pclues ) ) {
 
 		closePuzzle ( puzzle );
 		puzzle = NULL;
@@ -380,20 +417,26 @@ static int countUnsolved ( PUZZLE *puzzle )
 }
 
 
-static void updateRowMasks ( PUZZLE *puzzle, int row, int entry )
+//static void updateRowMasks ( PUZZLE *puzzle, int row, int entry )
+static void updateRowMasks ( PUZZLE *puzzle, int row, short *pentry )
 
 {
    int	column;
-   int	mask = ~digit2bit ( entry );
+   //int	mask = ~digit2bit ( entry );
+   short	mask = ~digit2bit ( star(pentry) );
+   short	*pmask = &mask;
+   IFT(pmask, pentry);
 
 #if	defined(DEBUG)
-   fprintf ( logFile, "updateRowMasks ( %p, %d, %d ) {\n", puzzle, row, entry );
+   //fprintf ( logFile, "updateRowMasks ( %p, %d, %d ) {\n", puzzle, row, entry );
+   fprintf ( logFile, "updateRowMasks ( %p, %d, %p ) {\n", puzzle, row, pentry );
    fflush ( logFile );
 #endif
 
    for ( column = 0; column < 9; ++column ) {
 
 	puzzle->masks [row][column] &= mask;
+	IFT(puzzle->pmasks [row][column], pmask);
    }
 
 #if	defined(DEBUG)
@@ -403,21 +446,27 @@ static void updateRowMasks ( PUZZLE *puzzle, int row, int entry )
 }
 
 
-static void updateColumnMasks ( PUZZLE *puzzle, int column, int entry )
+//static void updateColumnMasks ( PUZZLE *puzzle, int column, int entry )
+static void updateColumnMasks ( PUZZLE *puzzle, int column, short *pentry )
 
 {
    int	row;
-   int	mask = ~digit2bit ( entry );
+   //int	mask = ~digit2bit ( entry );
+   short	mask = ~digit2bit ( star(pentry) );
+   short	*pmask = &mask;
+   IFT(pmask, pentry);
 
 #if	defined(DEBUG)
-   fprintf ( logFile, "updateColumnMasks ( %p, %d, %d ) {\n", puzzle, column,
-									entry );
+   //fprintf ( logFile, "updateColumnMasks ( %p, %d, %d ) {\n", puzzle, column,
+   fprintf ( logFile, "updateColumnMasks ( %p, %d, %p ) {\n", puzzle, column,
+									pentry );
    fflush ( logFile );
 #endif
 
    for ( row = 0; row < 9; ++row ) {
 
 	puzzle->masks [row][column] &= mask;
+	IFT(puzzle->pmasks [row][column], pmask);
    }
 
 #if	defined(DEBUG)
@@ -427,16 +476,21 @@ static void updateColumnMasks ( PUZZLE *puzzle, int column, int entry )
 }
 
 
-static void updateBlockMasks ( PUZZLE *puzzle, int row, int column, int entry )
+//static void updateBlockMasks ( PUZZLE *puzzle, int row, int column, int entry )
+static void updateBlockMasks ( PUZZLE *puzzle, int row, int column, short *pentry )
 
 {
    int	rowMax = row + 3 - ( row % 3 );
    int	columnMax = column + 3 - ( column % 3 );
-   int	mask = ~digit2bit ( entry );
+   //int	mask = ~digit2bit ( entry );
+   short	mask = ~digit2bit ( star(pentry) );
+   short	*pmask = &mask;
+   IFT(pmask, pentry);
 
 #if	defined(DEBUG)
-   fprintf ( logFile, "updateBlockMasks ( %p, %d, %d, %d ) {\n", puzzle, row,
-								column, entry );
+   //fprintf ( logFile, "updateBlockMasks ( %p, %d, %d, %d ) {\n", puzzle, row,
+   fprintf ( logFile, "updateBlockMasks ( %p, %d, %d, %p ) {\n", puzzle, row,
+								column, pentry );
    fflush ( logFile );
 #endif
 
@@ -445,6 +499,7 @@ static void updateBlockMasks ( PUZZLE *puzzle, int row, int column, int entry )
 	for ( column = columnMax - 3; column < columnMax; ++column ) {
 
 		puzzle->masks [row][column] &= mask;
+		IFT(puzzle->pmasks [row][column], pmask);
 	}
    }
 
@@ -502,15 +557,23 @@ static int missingDigitScan ( PUZZLE *puzzle )
 }
 
 
-static int crossHatch ( int *masks )
+//static int crossHatch ( int *masks )
+static int crossHatch ( short **pmasks )
 
 {
    int	progress = 0;
-   int	solutions [9];
+   //int	solutions [9];
+   short	solutions [9];
+   short	*psolutions [9];
+   int	k;
+   for ( k = 0; k < 9; k++ ) {
+   	psolutions [k] = &solutions[k];
+   }
    int	i;
 
 #if	defined(DEBUG)
-   fprintf ( logFile, "crossHatch ( %04X ) {\n", (unsigned int)masks );
+   //fprintf ( logFile, "crossHatch ( %04X ) {\n", (unsigned int)masks );
+   fprintf ( logFile, "crossHatch ( %p ) {\n", pmasks );
    fflush ( logFile );
 #endif
 
@@ -518,14 +581,25 @@ static int crossHatch ( int *masks )
 
 	int	j;
 
-	solutions [i] = masks [i];
+	//solutions [i] = masks [i];
+	solutions [i] = star(pmasks [i]);
+	IFT(psolutions [i], pmasks [i]);
 
-	for ( j = 0; j < 9; ++j ) if ( j != i ) solutions [i] &= ~masks [j];
+	//for ( j = 0; j < 9; ++j ) if ( j != i ) solutions [i] &= ~masks [j];
+	for ( j = 0; j < 9; ++j ) {
+		if ( j != i ) {
+			solutions [i] &= ~(star(pmasks [j]));
+			IFT(psolutions [i], pmasks [j]);
+		}
+	}
+		
    }
 
    for ( i = 0; i < 9; ++i ) {
 
-	if ( masks [i] = bit2digit ( solutions [i] ) ) ++progress;
+	//if ( masks [i] = bit2digit ( solutions [i] ) ) ++progress;
+	if ( STAR(pmasks [i]) = bit2digit ( solutions [i] ) ) ++progress;
+	IFT(pmasks [i], psolutions [i]);
    }
 
 #if	defined(DEBUG)
@@ -537,19 +611,22 @@ static int crossHatch ( int *masks )
 }
 		
 
-static int getRowMasks ( PUZZLE *puzzle, int row, int *masks )
+//static int getRowMasks ( PUZZLE *puzzle, int row, int *masks )
+static int getRowMasks ( PUZZLE *puzzle, int row, short **pmasks )
 
 {
    int	status = 0;
 
 #if	defined(DEBUG)
-   fprintf ( logFile, "getRowMasks ( %p, %d, %p ) {\n", puzzle, row, masks );
+   //fprintf ( logFile, "getRowMasks ( %p, %d, %p ) {\n", puzzle, row, masks );
+   fprintf ( logFile, "getRowMasks ( %p, %d, %p ) {\n", puzzle, row, pmasks );
    fflush ( logFile );
 #endif
 
    if ( puzzle->rowMasks [row] ) {
 
-	int	mask = 0;
+	//int	mask = 0;
+	short	mask = 0;
 	int	column;
 
 	status = 1;
@@ -557,8 +634,11 @@ static int getRowMasks ( PUZZLE *puzzle, int row, int *masks )
 	/* Make masks for the row. */
 	for ( column = 0; column < 9; ++column ) {
 
-		masks [column] = puzzle->masks [row][column];
-		mask |= masks [column];
+		//masks [column] = puzzle->masks [row][column];
+		STAR(pmasks [column]) = puzzle->masks [row][column];
+		IFT(pmasks [column], puzzle->pmasks [row][column]);
+		//mask |= masks [column];
+		mask |= star(pmasks [column]);
 	}
 
 	if ( mask != puzzle->rowMasks [row] ) status = -1;
@@ -573,31 +653,36 @@ static int getRowMasks ( PUZZLE *puzzle, int row, int *masks )
 }
 
 
-static int enterRowSolutions ( PUZZLE *puzzle, int row, int *solutions )
+//static int enterRowSolutions ( PUZZLE *puzzle, int row, int *solutions )
+static int enterRowSolutions ( PUZZLE *puzzle, int row, short **psolutions )
 
 {
    int	progress = 0;
    int	column;
 
 #if	defined(DEBUG)
+   //fprintf ( logFile, "enterRowSolutions ( %p, %d, %p ) {\n", puzzle, row,
+								//solutions );
    fprintf ( logFile, "enterRowSolutions ( %p, %d, %p ) {\n", puzzle, row,
-								solutions );
+								psolutions );
    fflush ( logFile );
 #endif
 
    /* Display the solutions. */
    for ( column = 0; column < 9; ++column ) {
 
-	if ( solutions [column] ) {
+	//if ( solutions [column] ) {
+	if ( star(psolutions [column]) ) {
 
-		if ( makeEntry ( puzzle, row, column, solutions [column] ) ) {
+		//if ( makeEntry ( puzzle, row, column, solutions [column] ) ) {
+		if ( makeEntry ( puzzle, row, column, psolutions [column] ) ) {
 
 			++progress;
 
 			updateColumnMasks ( puzzle, column,
-							solutions [column] );
+							psolutions [column] );
 			updateBlockMasks ( puzzle, row, column,
-							solutions [column] );
+							psolutions [column] );
 		}
 	}
    }
@@ -611,21 +696,25 @@ static int enterRowSolutions ( PUZZLE *puzzle, int row, int *solutions )
 }
 
 
-static int getColumnMasks ( PUZZLE *puzzle, int column, int *masks )
+//static int getColumnMasks ( PUZZLE *puzzle, int column, int *masks )
+static int getColumnMasks ( PUZZLE *puzzle, int column, short **pmasks )
 
 {
    int	status = 0;
 
 #if	defined(DEBUG)
+   //fprintf ( logFile, "getColumnMasks ( %p, %d, %p ) {\n", puzzle, column,
+									//masks );
    fprintf ( logFile, "getColumnMasks ( %p, %d, %p ) {\n", puzzle, column,
-									masks );
+									pmasks );
    fflush ( logFile );
 #endif
 
    /* Make sure the column is not already filled. */
    if ( puzzle->columnMasks [column] ) {
 
-	int	mask = 0;
+	//int	mask = 0;
+	short	mask = 0;
 	int	row;
 
 	status = 1;
@@ -633,8 +722,11 @@ static int getColumnMasks ( PUZZLE *puzzle, int column, int *masks )
 	/* Make masks for the column. */
 	for ( row = 0; row < 9; ++row ) {
 
-		masks [row] = puzzle->masks [row][column];
-		mask |= masks [row];
+		//masks [row] = puzzle->masks [row][column];
+		STAR(pmasks [row]) = puzzle->masks [row][column];
+		IFT(pmasks [row], puzzle->pmasks [row][column]);
+		//mask |= masks [row];
+		mask |= star(pmasks [row]);
 	}
 
 	if ( mask != puzzle->columnMasks [column] ) status = -1;
@@ -649,30 +741,35 @@ static int getColumnMasks ( PUZZLE *puzzle, int column, int *masks )
 }
 
 
-static int enterColumnSolutions ( PUZZLE *puzzle, int column, int *solutions )
+//static int enterColumnSolutions ( PUZZLE *puzzle, int column, int *solutions )
+static int enterColumnSolutions ( PUZZLE *puzzle, int column, short **psolutions )
 
 {
    int	progress = 0;
    int	row;
 
 #if	defined(DEBUG)
+   //fprintf ( logFile, "enterColumnSolutions ( %p, %d, %p ) {\n", puzzle,
+							//column, solutions );
    fprintf ( logFile, "enterColumnSolutions ( %p, %d, %p ) {\n", puzzle,
-							column, solutions );
+							column, psolutions );
    fflush ( logFile );
 #endif
 
    /* Enter the results of cross hatching the column. */
    for ( row = 0; row < 9; ++row ) {
 
-	if ( solutions [row] ) {
+	//if ( solutions [row] ) {
+	if ( star(psolutions [row]) ) {
 
-		if ( makeEntry ( puzzle, row, column, solutions [row] ) ) {
+		//if ( makeEntry ( puzzle, row, column, solutions [row] ) ) {
+		if ( makeEntry ( puzzle, row, column, psolutions [row] ) ) {
 
 			++progress;
 
-			updateRowMasks ( puzzle, row, solutions [row] );
+			updateRowMasks ( puzzle, row, psolutions [row] );
 			updateBlockMasks ( puzzle, row, column,
-							solutions [row] );
+							psolutions [row] );
 		}
 	}
    }
@@ -686,14 +783,17 @@ static int enterColumnSolutions ( PUZZLE *puzzle, int column, int *solutions )
 }
 
 
-static int getBlockMasks ( PUZZLE *puzzle, int row, int column, int *masks )
+//static int getBlockMasks ( PUZZLE *puzzle, int row, int column, int *masks )
+static int getBlockMasks ( PUZZLE *puzzle, int row, int column, short **pmasks )
 
 {
    int	status = 0;
 
 #if	defined(DEBUG)
+   //fprintf ( logFile, "getBlockMasks ( %p, %d, %d, %p ) {\n", puzzle, row,
+								//column, masks );
    fprintf ( logFile, "getBlockMasks ( %p, %d, %d, %p ) {\n", puzzle, row,
-								column, masks );
+								column, pmasks );
    fflush ( logFile );
 #endif
 
@@ -703,7 +803,8 @@ static int getBlockMasks ( PUZZLE *puzzle, int row, int column, int *masks )
 	int	rowMax = ( row + 1 ) * 3;
 	int	columnMax = ( column + 1 ) * 3;
 	int	k = 0;
-	int	mask = 0;
+	//int	mask = 0;
+	short	mask = 0;
 	int	i;
 
 	status = 1;
@@ -715,8 +816,11 @@ static int getBlockMasks ( PUZZLE *puzzle, int row, int column, int *masks )
 
 		for ( j = columnMax - 3; j < columnMax; ++j ) {
 
-			masks [k] = puzzle->masks [i][j];
-			mask |= masks [k];
+			//masks [k] = puzzle->masks [i][j];
+			STAR(pmasks [k]) = puzzle->masks [i][j];
+			IFT(pmasks [k], puzzle->pmasks [i][j]);
+			//mask |= masks [k];
+			mask |= star(pmasks [k]);
 
 			++k;
 		}
@@ -735,7 +839,8 @@ static int getBlockMasks ( PUZZLE *puzzle, int row, int column, int *masks )
 
 
 static int enterBlockSolutions ( PUZZLE *puzzle, int row, int column,
-								int *solutions )
+								//int *solutions )
+								short **psolutions )
 {
    int	progress = 0;
    int	rowMax = ( row + 1 ) * 3;
@@ -744,8 +849,10 @@ static int enterBlockSolutions ( PUZZLE *puzzle, int row, int column,
    int	i;
 
 #if	defined(DEBUG)
+//   fprintf ( logFile, "enterBlockSolutions ( %p, %d, %d, %p ) {\n", puzzle,
+//						row, column, solutions );
    fprintf ( logFile, "enterBlockSolutions ( %p, %d, %d, %p ) {\n", puzzle,
-						row, column, solutions );
+						row, column, psolutions );
    fflush ( logFile );
 #endif
 
@@ -755,13 +862,15 @@ static int enterBlockSolutions ( PUZZLE *puzzle, int row, int column,
 
 	for ( j = columnMax - 3; j < columnMax; ++j ) {
 
-		if ( solutions [k] ) {
+		//if ( solutions [k] ) {
+		if ( star(psolutions [k]) ) {
 
-			if ( makeEntry ( puzzle, i, j, solutions [k] ) ) {
+			//if ( makeEntry ( puzzle, i, j, solutions [k] ) ) {
+			if ( makeEntry ( puzzle, i, j, psolutions [k] ) ) {
 
 				++progress;
-				updateRowMasks ( puzzle, i, solutions [k] );
-				updateColumnMasks ( puzzle, j, solutions [k] );
+				updateRowMasks ( puzzle, i, psolutions [k] );
+				updateColumnMasks ( puzzle, j, psolutions [k] );
 			}
 		}
 
@@ -798,15 +907,25 @@ static int crossHatchScan ( PUZZLE *puzzle )
 
 	for ( j = 0; j < 3 && progress > -1; j++ ) {
 
-		int	masks [9];
+		//int	masks [9];
+		short	masks [9];
+		short	*pmasks [9];
+		int	k;
+		for ( k = 0; k < 9; k++ ) {
+			pmasks [k] = &masks[k];
+		}
+
 		int	status;
 
-		if ( ( status = getBlockMasks ( puzzle, i, j, masks ) ) > 0 ) {
+		//if ( ( status = getBlockMasks ( puzzle, i, j, masks ) ) > 0 ) {
+		if ( ( status = getBlockMasks ( puzzle, i, j, pmasks ) ) > 0 ) {
 
-			if ( crossHatch ( masks ) ) {
+			//if ( crossHatch ( masks ) ) {
+			if ( crossHatch ( pmasks ) ) {
 
 				progress += enterBlockSolutions ( puzzle,
-								i, j, masks );
+								//i, j, masks );
+								i, j, pmasks );
 			}
 
 		} else if ( status < 0 ) progress = -1;
@@ -820,15 +939,24 @@ static int crossHatchScan ( PUZZLE *puzzle )
 	/* Cross hatch the rows. */
 	for ( i = 0; i < 9 && progress > -1; ++i ) {
 
-		int	masks [9];
+		//int	masks [9];
+		short	masks [9];
+		short	*pmasks [9];
+		int	k;
+		for ( k = 0; k < 9; k++ ) {
+			pmasks [k] = &masks[k];
+		}
 		int	status;
 
-		if ( ( status = getRowMasks ( puzzle, i, masks ) ) > 0 ) {
+		//if ( ( status = getRowMasks ( puzzle, i, masks ) ) > 0 ) {
+		if ( ( status = getRowMasks ( puzzle, i, pmasks ) ) > 0 ) {
 
-			if ( crossHatch ( masks ) ) {
+			//if ( crossHatch ( masks ) ) {
+			if ( crossHatch ( pmasks ) ) {
 
 				progress += enterRowSolutions ( puzzle, i,
-									masks );
+									//masks );
+									pmasks );
 			}
 
 		} else if ( status < 0 ) progress = -1;
@@ -837,15 +965,25 @@ static int crossHatchScan ( PUZZLE *puzzle )
 	/* Cross hatch the columns. */
 	for ( i = 0; i < 9 && progress > -1; ++i ) {
 
-		int	masks [9];
+		//int	masks [9];
+		short	masks [9];
+		short	*pmasks [9];
+		int	k;
+		for ( k = 0; k < 9; k++ ) {
+			pmasks [k] = &masks[k];
+		}
+
 		int	status;
 
-		if ( ( status = getColumnMasks ( puzzle, i, masks ) ) > 0 ) {
+		//if ( ( status = getColumnMasks ( puzzle, i, masks ) ) > 0 ) {
+		if ( ( status = getColumnMasks ( puzzle, i, pmasks ) ) > 0 ) {
 
-			if ( crossHatch ( masks ) ) {
+			//if ( crossHatch ( masks ) ) {
+			if ( crossHatch ( pmasks ) ) {
 
 				progress += enterColumnSolutions ( puzzle, i,
-									masks );
+									//masks );
+									pmasks );
 			}
 
 		} else if ( status < 0 ) progress = -1;

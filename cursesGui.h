@@ -53,4 +53,5 @@ extern const char	*solveAnyway;
 
 int	confirm ( DISPLAY *, const char * );
 void	displayCaptions ( DISPLAY *, const char *, const char * );
-int	displayEntry ( DISPLAY *, int, int, int );
+//int	displayEntry ( DISPLAY *, int, int, int );
+int	displayEntry ( DISPLAY *, int, int, short * );

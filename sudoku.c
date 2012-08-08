@@ -2,6 +2,7 @@
 /*
  * Sudoku Puzzle Solver.
  */
+#define DEBUG
 
 #include        <stdio.h>
 #include	<stdlib.h>
@@ -9,6 +10,7 @@
 
 #include	"cursesGui.h"
 #include	"puzzle.h"
+#include	"ift.h"
 
 #if	defined(DEBUG)
 FILE *logFile = NULL;
@@ -36,7 +38,8 @@ static void displaySolution ( DISPLAY *display, PUZZLE *puzzle )
 
 		if ( display->board [row][column] == 0 )
 					displayEntry ( display, row, column,
-						puzzle->grid [row][column] );
+						//puzzle->pgrid [row][column] );
+						puzzle->pgrid [row][column] );
 	}
    }
 
@@ -246,7 +249,9 @@ int main ( int argc, char **argv )
 	PUZZLE	*puzzle;
 	int	technique = 0;
 	int	difficulty = 0;
-	char	clues[82];
+	//char	clues[82];
+	short	clues[82];
+	short	*pclues[82];
 	int	row;
 	int	i = 0;
 
@@ -256,13 +261,30 @@ int main ( int argc, char **argv )
 
 		for ( column = 0; column < 9; ++column ) {
 
-			clues [i++] = '0' + display->board [row] [column];
+			clues [i] = '0' + display->board [row] [column];
+			pclues [i] = &clues [i];
+			i++;
 		}
 	}
 
 	clues [i] = '\0';
+	pclues [i] = &clues [i];
+	
+#if	defined(DEBUG)
+   	fprintf ( logFile, "DDD: %lx, %p\n", (unsigned long)pclues[2],pclues[2]);
+   	fflush ( logFile );
+#endif
+	pclues [21] = TAINT(pclues [21]);
+	//pclues [11] = TAINT(pclues [11]);
+	//pclues [16] = TAINT(pclues [16]);
+	//pclues [18] = TAINT(pclues [18]);
+	//pclues [21] = TAINT(pclues [21]);
+#if	defined(DEBUG)
+   	fprintf ( logFile, "DDD: %lx, %p\n", (unsigned long)pclues[2],pclues[2]);
+   	fflush ( logFile );
+#endif
 
-	if ( puzzle = openPuzzleSolver ( clues ) ) {
+	if ( puzzle = openPuzzleSolver ( pclues ) ) {
 
 		HISTORY	*hist = NULL;
 
@@ -295,10 +317,17 @@ int main ( int argc, char **argv )
 
 				int	row = coords->row;
 				int	column = coords->column;
-				int	entry = puzzle->grid [row][column];
+				//int	entry = puzzle->grid [row][column];
+				short	*pentry;
+			        pentry	= puzzle->pgrid [row][column];
+#if	defined(DEBUG)
+   fprintf ( logFile, "DDD: %p, %lx\n", puzzle->pgrid [row][column], (unsigned long) puzzle->pgrid [row][column]);
+   fflush ( logFile );
+#endif
 
 				go = displayEntry ( display, row, column,
-									entry );
+									//entry );
+									pentry );
 			}
 
 			if ( go ) {

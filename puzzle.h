@@ -60,11 +60,17 @@ typedef struct {
 
 	int	difficulty;
 	int	technique;
-	char	grid [9][9];
+	//char	grid [9][9];
+	short	grid [9][9];
 	short	masks [9][9];
 	short	rowMasks [9];
 	short	columnMasks [9];
 	short	blockMasks [3][3];
+	short * pgrid [9][9];
+	short *	pmasks [9][9];
+	short *	prowMasks [9];
+	short *	pcolumnMasks [9];
+	short *	pblockMasks [3][3];
 	HISTORY	*history;
 
 } PUZZLE;
@@ -86,5 +92,6 @@ typedef struct {
 /* Puzzle solution function. */
 int	solvePuzzle ( PUZZLE *, HISTORY * );
 
-PUZZLE	*openPuzzleSolver ( char * );
+//PUZZLE	*openPuzzleSolver ( char * );
+PUZZLE	*openPuzzleSolver ( short ** );
 void	closePuzzle ( PUZZLE * );
