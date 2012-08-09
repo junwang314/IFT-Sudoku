@@ -30,7 +30,8 @@ typedef struct {
 	short	rowMasks [9];
 	short	columnMasks [9];
 	short	blockMasks [3][3];
-	char	board [9][9];
+	short	board [9][9];
+	short	pboard [9][9];
 
 } DISPLAY;
 

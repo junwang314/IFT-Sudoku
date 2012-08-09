@@ -444,6 +444,32 @@ static int getClues ( DISPLAY *display )
 				deleteClue ( display, i, j );
 				addch ( '-' );
 			}
+		}
+		else if (c == 't' || c == 'T') {
+			int	i;
+			int	j;
+			char	k = '0';
+
+			if ( isBig ( display ) ) {
+
+				i = ( y - 1 ) >> 1;
+				j = ( x - 1 ) >> 1;
+
+			} else {
+
+				i = ( y * 3 ) >> 2;
+				j = ( x * 3 ) >> 2;
+			}
+
+			k = k + display->board[i][j];
+			if(c == 't') {
+				display->pboard[i][j] = TAG;
+				addch ( k | A_BOLD | A_STANDOUT );
+			}
+			else {
+				display->pboard[i][j] = 0;
+				addch ( k | A_BOLD);
+			}
 
 		} else {
 
@@ -836,6 +862,7 @@ DISPLAY *openDisplay ( int delay )
 				for ( j = 0; j < 9; ++j ) {
 
 					display->board [i][j] = 0;
+					display->pboard [i][j] = 0;
 				}
 			}
 

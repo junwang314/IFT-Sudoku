@@ -84,7 +84,7 @@ void printInstructions ( void )
 
 
 #define	DEFAULT_DELAY	1000
-#define	FAST_DELAY	500
+#define	FAST_DELAY	300
 #define	SLOW_DELAY	2000
 
 int main ( int argc, char **argv )
@@ -94,7 +94,8 @@ int main ( int argc, char **argv )
    DISPLAY	*display;
    char		*programName;
    char		*revision;
-   int		delay = DEFAULT_DELAY;
+   //int		delay = DEFAULT_DELAY;
+   int		delay = FAST_DELAY;
    int		analysis = 0;
    int		warning = 0;
    int		help = 0;
@@ -263,6 +264,9 @@ int main ( int argc, char **argv )
 
 			clues [i] = '0' + display->board [row] [column];
 			pclues [i] = &clues [i];
+			if (display->pboard [row][column]) {
+				pclues[i] = TAINT(pclues[i]);
+			}
 			i++;
 		}
 	}
@@ -274,7 +278,7 @@ int main ( int argc, char **argv )
    	fprintf ( logFile, "DDD: %lx, %p\n", (unsigned long)pclues[2],pclues[2]);
    	fflush ( logFile );
 #endif
-	pclues [21] = TAINT(pclues [21]);
+	//pclues [21] = TAINT(pclues [21]);
 	//pclues [11] = TAINT(pclues [11]);
 	//pclues [16] = TAINT(pclues [16]);
 	//pclues [18] = TAINT(pclues [18]);
